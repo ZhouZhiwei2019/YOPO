@@ -164,9 +164,18 @@ class YopoNet:
         scale = {'435': 0.001, 'flightmare': 1.0}.get(self.env, 1.0)
 
         try:
-            depth = self.bridge.imgmsg_to_cv2(data, "32FC1")
-        except:
+            if data.encoding == "16UC1":
+                depth = self.bridge.imgmsg_to_cv2(data, "passthrough").astype(np.float32) * 0.001  # 转米
+            else:
+                depth = self.bridge.imgmsg_to_cv2(data, "32FC1")
+        except Exception as e:
             print("CV_bridge ERROR: Possible solutions may be found at https://github.com/TJU-Aerial-Robotics/YOPO/issues/2")
+            print("Exception detail:", str(e))
+            return  # ⬅️ 出错就直接退出，不继续执行后面的代码
+        
+        # print(f"[Depth callback] Encoding: {data.encoding}, Shape: {data.height}x{data.width}")
+        # print(f"[Depth callback] Depth min: {np.nanmin(depth):.3f}, max: {np.nanmax(depth):.3f}")
+        # print(f"[Depth callback] Scale used: {scale}")
 
         time0 = time.time()
         if depth.shape[0] != self.height or depth.shape[1] != self.width:
@@ -401,7 +410,7 @@ class YopoNet:
 def parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--use_tensorrt", type=int, default=0, help="use tensorrt or not")
-    parser.add_argument("--trial", type=int, default=1, help="trial number")
+    parser.add_argument("--trial", type=int, default=2, help="trial number")
     parser.add_argument("--epoch", type=int, default=0, help="epoch number")
     parser.add_argument("--iter", type=int, default=0, help="iter number")
     parser.add_argument("--trt_file", type=str, default='yopo_trt.pth', help="tensorrt filename")
@@ -425,7 +434,7 @@ def main():
                 'pitch_angle_deg': -5,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'odom_topic': '/juliett/ground_truth/odom',
                 'depth_topic': '/depth_image',
-                'verbose': False,              # print the latency?
+                'verbose': True,              # print the latency?
                 'visualize': True              # visualize all predictions? set False in real flight
                 }
     YopoNet(settings, weight)

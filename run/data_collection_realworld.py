@@ -21,8 +21,8 @@ if not os.path.exists(save_dir):
 # Due to odometry drift, the map is adjusted, and the drone's position is also adjusted accordingly.
 R_no = Rotation.from_euler('ZYX', [0.0, 0.0, 0.0], degrees=True)  # yaw, pitch, roll
 translation_no = np.array([0.0, 0.0, 0.0])
-img_height = 270
-img_width = 480
+img_height = 480
+img_width = 640
 
 # VARIABLES
 depth_img = None
@@ -114,8 +114,8 @@ def save_data(_timer):
 
 if __name__ == "__main__":
     rospy.init_node('data_collect', anonymous=False)
-    odom_ref_sub = rospy.Subscriber("/odometry/imu", Odometry, callback_odometry, queue_size=1)
-    depth_sub = rospy.Subscriber("/camera/depth/image_rect_raw", Image, callback_depth, queue_size=1)
+    odom_ref_sub = rospy.Subscriber("/drone0/mavros/local_position/odom", Odometry, callback_odometry, queue_size=1)
+    depth_sub = rospy.Subscriber("/iris0/camera/depth/image_raw/new", Image, callback_depth, queue_size=1)
     timer = rospy.Timer(rospy.Duration(0.033), save_data)
     print("Data Collection Node Ready!")
     rospy.spin()

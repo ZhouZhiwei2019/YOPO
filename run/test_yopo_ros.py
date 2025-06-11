@@ -340,7 +340,7 @@ def main():
                 'pitch_angle_deg': -5,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'odom_topic': '/juliett/ground_truth/odom',
                 'depth_topic': '/depth_image',
-                'verbose': False,              # print the latency?
+                'verbose': True,              # print the latency?
                 'visualize': True              # visualize all predictions? set False in real flight
                 }
     YopoNet(settings, weight)
