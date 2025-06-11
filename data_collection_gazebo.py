@@ -12,11 +12,11 @@ import cv2
 from scipy.spatial.transform import Rotation
 
 # ---------- 参数 ----------
-TOTAL_GROUPS = 10
-FRAMES_PER_GROUP = 1000
+TOTAL_GROUPS = 20
+FRAMES_PER_GROUP = 1024
 IMG_WIDTH = 640
 IMG_HEIGHT = 480
-DEPTH_TOPIC = "/iris0/camera/depth/image_raw"
+DEPTH_TOPIC = "/iris0/camera/depth/image_raw/new"
 CAMERA_INFO_TOPIC = "/iris0/camera/depth/camera_info"
 ODOM_TOPIC = "/drone0/mavros/local_position/odom"
 SAVE_BASE = "/home/zzw/YOPO/run/yopo_gazebo"
@@ -26,7 +26,7 @@ VOXEL_DOWNSAMPLE = 0.05
 camera_intrinsics = None
 bridge = CvBridge()
 frame_id = 0
-group_id = 0
+group_id = 10
 pcd = o3d.geometry.PointCloud()
 positions = []
 quaternions = []
@@ -128,7 +128,8 @@ def callback(depth_msg, caminfo_msg, odom_msg):
     fx, fy, cx, cy = camera_intrinsics
     cloud = depth_to_point_cloud(depth, pose, fx, fy, cx, cy)
     cloud_o3d = o3d.geometry.PointCloud()
-    cloud_o3d.points = o3d.utility.Vector3dVector(cloud)
+    cloud = cloud.astype(np.float32)  # <== 强制转换为 float32
+    cloud_o3d.points = o3d.utility.Vector3fVector(cloud)  # <== 使用 float 类型 Vector
     pcd += cloud_o3d
 
     print(f"[Group {group_id}] Frame {frame_id}: Total Points: {len(pcd.points)}")
@@ -142,7 +143,7 @@ def callback(depth_msg, caminfo_msg, odom_msg):
         # 保存ply
         pcd = pcd.voxel_down_sample(VOXEL_DOWNSAMPLE)
         ply_path = os.path.join(SAVE_BASE, f"pointcloud-{group_id}.ply")
-        o3d.io.write_point_cloud(ply_path, pcd)
+        o3d.io.write_point_cloud(ply_path, pcd, write_ascii=True)
         print(f"[Group {group_id}] Saved to {ply_path}")
 
         # 清空数据，进入下一个group

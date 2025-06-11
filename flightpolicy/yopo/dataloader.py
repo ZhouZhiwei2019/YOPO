@@ -96,7 +96,7 @@ class YopoDataset(Dataset):
 
 
 if __name__ == '__main__':
-    data_loader = DataLoader(YopoDataset(), batch_size=32, shuffle=True, num_workers=4)
+    data_loader = DataLoader(YopoDataset(), batch_size=128, shuffle=True, num_workers=16, pin_memory=True,  prefetch_factor=4)
 
     start = time.time()
     for epoch in range(1):

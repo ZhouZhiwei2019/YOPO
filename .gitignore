@@ -21,7 +21,6 @@ _site
 
 # saved
 run/saved/*
-!run/saved/YOPO_1
 run/yopo_trt.pth
 externals/
 

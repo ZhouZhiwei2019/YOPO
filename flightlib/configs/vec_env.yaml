@@ -1,10 +1,10 @@
 env:
   seed: 1
   scene_id: 4     # 0 wasteland, 1 japanese street, 4 emptyforest in SR standalone
-  num_envs: 16    # Important: same to batch size!
-  num_threads: 16
-  dataset_path: "/run/yopo_sim/"  # path of training dataset
-  ply_path: "/run/yopo_sim/"      # path of the point could of training data
+  num_envs: 128    # Important: same to batch size!
+  num_threads: 32
+  dataset_path: "/run/yopo_gazebo/"  # path of training dataset
+  ply_path: "/run/yopo_gazebo/"      # path of the point could of training data
 
 unity:
   spawn_trees: true

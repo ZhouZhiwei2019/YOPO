@@ -27,7 +27,7 @@ def parser():
     parser.add_argument("--seed", type=int, default=0, help="random seed")
     parser.add_argument("--train", type=int, default=1, help="train or evaluate the policy?")
     parser.add_argument("--render", type=int, default=0, help="render with Unity?")
-    parser.add_argument("--trial", type=int, default=1, help="trial number")
+    parser.add_argument("--trial", type=int, default=4, help="trial number")
     parser.add_argument("--epoch", type=int, default=0, help="epoch number")
     parser.add_argument("--iter", type=int, default=0, help="iter number")
     parser.add_argument("--pretrained", type=int, default=0, help="use pre-trained model?")
@@ -101,7 +101,7 @@ def main():
             print("use pretrained model ", weight)
 
         if args.supervised:
-            model.supervised_learning(epoch=int(50), log_interval=(100, 50000))  # How many batches to print and save
+            model.supervised_learning(epoch=int(400), log_interval=(25, 2500))  # How many batches to print and save
 
         elif args.imitation:
             model.imitation_learning(total_timesteps=int(1 * 1e6), log_interval=(1, 40))

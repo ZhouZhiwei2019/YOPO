@@ -1,16 +1,16 @@
 main_loop_freq: 30
 unity_render: yes
 scene_id: 4                             # 0 wasteland, 1 japanese street, 4 empty forest in standalone (SR)
-odom_topic: /juliett/ground_truth/odom  # Topic of UAV odometry for render
+odom_topic: /drone0/mavros/local_position/odom  # Topic of UAV odometry for render
 quad_size: 0.1
 ply_path: "/flightrender/RPG_Flightmare/pointcloud_data/"  # temporary path of saving point could (for visualization)
 
 rgb_camera_left:
   on: yes 
   t_BC: [0.0, 0.0, 0.1]   # translational vector of the camera with respect to the body frame
-  r_BC: [0.0, -5.0, -90]  # rotational angle (roll, pitch, yaw) of the camera in degree
-  width: 160
-  height: 90
+  r_BC: [0.0, 0.0, -90]  # rotational angle (roll, pitch, yaw) of the camera in degree
+  width: 640
+  height: 480
   fov: 90.0               # Horizontal FOV
   enable_depth: yes
   enable_segmentation: no
@@ -20,7 +20,7 @@ rgb_camera_left:
 rgb_camera_right:
   on: no
   t_BC: [0.0, -0.2, 0.1]  # translational vector of the camera with repect to the body frame
-  r_BC: [0.0, -5.0, -90]  # rotational angle (roll, pitch, yaw) of the camera in degree.
+  r_BC: [0.0, 0.0, -90]  # rotational angle (roll, pitch, yaw) of the camera in degree.
 
 unity:
   spawn_trees: true

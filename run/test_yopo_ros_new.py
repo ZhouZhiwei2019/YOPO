@@ -25,7 +25,8 @@ import argparse
 import time
 from ruamel.yaml import YAML
 from scipy.spatial.transform import Rotation as R
-from flightpolicy.control_msg import PositionCommand
+# from flightpolicy.control_msg import PositionCommand
+from mavros_msgs.msg import PositionTarget
 from flightpolicy.yopo.yopo_policy import YopoPolicy
 from flightpolicy.yopo.primitive_utils import LatticeParam, LatticePrimitive, Poly5Solver, Polys5Solver, calculate_yaw
 
@@ -100,7 +101,8 @@ class YopoNet:
         self.lattice_traj_pub = rospy.Publisher("/yopo_net/lattice_trajs_visual", PointCloud2, queue_size=1)
         self.best_traj_pub = rospy.Publisher("/yopo_net/best_traj_visual", PointCloud2, queue_size=1)
         self.all_trajs_pub = rospy.Publisher("/yopo_net/trajs_visual", PointCloud2, queue_size=1)
-        self.ctrl_pub = rospy.Publisher("/so3_control/pos_cmd", PositionCommand, queue_size=1)
+        # self.ctrl_pub = rospy.Publisher("/so3_control/pos_cmd", PositionCommand, queue_size=1)
+        self.ctrl_pub = rospy.Publisher("/drone0/pos_cmd_ego_world", PositionTarget, queue_size=1)
         # ros subscriber
         self.odom_sub = rospy.Subscriber(odom_topic, Odometry, self.callback_odometry, queue_size=1)
         self.depth_sub = rospy.Subscriber(depth_topic, Image, self.callback_depth, queue_size=1)
@@ -247,18 +249,31 @@ class YopoNet:
             return
         with self.lock:  # Python3.8: threads are scheduled using time slices, add the lock to ensure safety and publish frequency
             self.ctrl_time += self.ctrl_dt
-            control_msg = PositionCommand()
+            # control_msg = PositionCommand()
+            # control_msg.header.stamp = rospy.Time.now()
+            # control_msg.trajectory_flag = control_msg.TRAJECTORY_STATUS_READY
+            # control_msg.position.x = self.optimal_poly_x.get_position(self.ctrl_time)
+            # control_msg.position.y = self.optimal_poly_y.get_position(self.ctrl_time)
+            # control_msg.position.z = self.optimal_poly_z.get_position(self.ctrl_time)
+            # control_msg.velocity.x = self.optimal_poly_x.get_velocity(self.ctrl_time)
+            # control_msg.velocity.y = self.optimal_poly_y.get_velocity(self.ctrl_time)
+            # control_msg.velocity.z = self.optimal_poly_z.get_velocity(self.ctrl_time)
+            # control_msg.acceleration.x = self.optimal_poly_x.get_acceleration(self.ctrl_time)
+            # control_msg.acceleration.y = self.optimal_poly_y.get_acceleration(self.ctrl_time)
+            # control_msg.acceleration.z = self.optimal_poly_z.get_acceleration(self.ctrl_time)
+            control_msg = PositionTarget()
             control_msg.header.stamp = rospy.Time.now()
-            control_msg.trajectory_flag = control_msg.TRAJECTORY_STATUS_READY
+            control_msg.coordinate_frame = PositionTarget.FRAME_LOCAL_NED
+            control_msg.type_mask = 0
             control_msg.position.x = self.optimal_poly_x.get_position(self.ctrl_time)
             control_msg.position.y = self.optimal_poly_y.get_position(self.ctrl_time)
             control_msg.position.z = self.optimal_poly_z.get_position(self.ctrl_time)
             control_msg.velocity.x = self.optimal_poly_x.get_velocity(self.ctrl_time)
             control_msg.velocity.y = self.optimal_poly_y.get_velocity(self.ctrl_time)
             control_msg.velocity.z = self.optimal_poly_z.get_velocity(self.ctrl_time)
-            control_msg.acceleration.x = self.optimal_poly_x.get_acceleration(self.ctrl_time)
-            control_msg.acceleration.y = self.optimal_poly_y.get_acceleration(self.ctrl_time)
-            control_msg.acceleration.z = self.optimal_poly_z.get_acceleration(self.ctrl_time)
+            control_msg.acceleration_or_force.x = self.optimal_poly_x.get_acceleration(self.ctrl_time)
+            control_msg.acceleration_or_force.y = self.optimal_poly_y.get_acceleration(self.ctrl_time)
+            control_msg.acceleration_or_force.z = self.optimal_poly_z.get_acceleration(self.ctrl_time)
             self.desire_pos = np.array([control_msg.position.x, control_msg.position.y, control_msg.position.z])
             self.desire_vel = np.array([control_msg.velocity.x, control_msg.velocity.y, control_msg.velocity.z])
             self.desire_acc = np.array([control_msg.acceleration.x, control_msg.acceleration.y, control_msg.acceleration.z])
@@ -266,7 +281,7 @@ class YopoNet:
             yaw, yaw_dot = calculate_yaw(self.desire_vel, goal_dir, self.last_yaw, self.ctrl_dt)
             self.last_yaw = yaw
             control_msg.yaw = yaw
-            control_msg.yaw_dot = yaw_dot
+            control_msg.yaw_rate = yaw_dot
             self.desire_init = True
             self.ctrl_pub.publish(control_msg)
 
@@ -427,13 +442,13 @@ def main():
     print("load weight from:", weight)
 
     settings = {'use_tensorrt': args.use_tensorrt,
-                'img_height': 96,
-                'img_width': 160,
+                'img_height': 480,
+                'img_width': 640,
                 'goal': [20, 20, 2],           # the goal
-                'env': 'flightmare',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
-                'pitch_angle_deg': -5,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
-                'odom_topic': '/juliett/ground_truth/odom',
-                'depth_topic': '/depth_image',
+                'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
+                'pitch_angle_deg': 0.0,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
+                'odom_topic': '/drone0/mavros/local_position/odom',
+                'depth_topic': '/iris0/camera/depth/image_raw/new',
                 'verbose': True,              # print the latency?
                 'visualize': True              # visualize all predictions? set False in real flight
                 }

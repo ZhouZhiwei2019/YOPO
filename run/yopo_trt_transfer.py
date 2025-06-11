@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     # The inputs should be consistent with training
     print("TensorRT Transfer...")
-    depth = np.zeros(shape=[1, 1, 96, 160], dtype=np.float32)
+    depth = np.zeros(shape=[1, 1, 480, 640], dtype=np.float32)
     obs = np.zeros(shape=[1, 9, lattice_space.vertical_num, lattice_space.horizon_num], dtype=np.float32)
     depth_in = torch.from_numpy(depth).cuda()
     obs_in = torch.from_numpy(obs).cuda()

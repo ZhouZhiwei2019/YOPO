@@ -333,13 +333,13 @@ def main():
     print("load weight from:", weight)
 
     settings = {'use_tensorrt': args.use_tensorrt,
-                'img_height': 96,
-                'img_width': 160,
+                'img_height': 480,
+                'img_width': 640,
                 'goal': [20, 20, 2],           # the goal
-                'env': 'flightmare',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
+                'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
                 'pitch_angle_deg': -5,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
-                'odom_topic': '/juliett/ground_truth/odom',
-                'depth_topic': '/depth_image',
+                'odom_topic': '/drone0/mavros/local_position/odom',
+                'depth_topic': '/iris0/camera/depth/image_raw/new',
                 'verbose': True,              # print the latency?
                 'visualize': True              # visualize all predictions? set False in real flight
                 }

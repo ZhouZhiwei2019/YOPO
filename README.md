@@ -8,15 +8,9 @@ Video of this paper can be found: [YouTube](https://youtu.be/m7u1MYIuIn4), [bili
 Some realworld experiment: [YouTube](https://youtu.be/LHvtbKmTwvE), [bilibili](https://www.bilibili.com/video/BV1jBpve5EkP)
 
 <table>
-  <tr>
-    <td align="center" width="38.5%"><img src="docs/realworld_1.gif" alt="Fig1" width="100%"></td>
-    <td align="center" width="38.5%"><img src="docs/realworld_2.gif" alt="Fig2" width="100%"></td>
-    <td align="center" width="23.0%"><img src="docs/platform.gif" alt="Fig3" width="100%"></td>
-  </tr>
+    <td align="center" style="border: none;"><img src="docs/realworld_1.gif" alt="Fig1" style="width: 100%;"></td>
+    <td align="center" style="border: none;"><img src="docs/realworld_2.gif" alt="Fig2" style="width: 100%;"></td>
 </table>
-
-### Hardware:
-Our drone designed by [@Mioulo](https://github.com/Mioulo) is also open-source. The hardware components are listed in [hardware_list.pdf](hardware/hardware_list.pdf), and the SolidWorks file of carbon fiber frame can be found in [/hardware](hardware/).
 
 ## Introduction:
 We propose **a learning-based planner for autonomous navigation in obstacle-dense environments** which intergrats (i) perception and mapping, (ii) front-end path searching, and (iii) back-end optimization of classical methods into a single network. 
@@ -100,7 +94,7 @@ pip install scipy==1.10.1 scikit-build==0.18.1 ruamel-yaml==0.17.21 numpy==1.22.
 **5. Build the flightlib** 
 ```
 conda activate yopo
-cd YOPO/flightlib/build
+cd ~/YOPO/flightlib/build
 cmake ..
 make -j8
 pip install .
