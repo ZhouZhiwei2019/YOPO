@@ -29,5 +29,6 @@ def fix_ply_header(file_path):
 ply_dir = '/home/zzw/YOPO/run/yopo_gazebo/'
 for fname in os.listdir(ply_dir):
     if fname.endswith('.ply'):
+        print("Converting2Float:", fname)
         fix_ply_header(os.path.join(ply_dir, fname))
 

@@ -30,6 +30,7 @@ run/utils/*.csv
 # dataset
 /run/yopo_sim/*
 /run/yopo_gazebo/*
+/run/yopo_gazebo_ascii/*
 /run/rknn_quantization/*
 /run/*.onnx
 /run/*.pt

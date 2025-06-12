@@ -1,5 +1,5 @@
 # Maximum Speed: applicable when test speed not much higher than training
-vel_max: 2.0  # the given weights perform smoothly at speeds between 0 - 6 m/s
+vel_max: 3.0  # the given weights perform smoothly at speeds between 0 - 6 m/s
 # segment_time = 2 * radio / vel_max
 
 # IMPORTANT TRAINING PARAM: weight of penalties (6m/s)
@@ -14,12 +14,12 @@ wl: 0.00      # trajectory length cost
 #wg: 0.0001
 
 # trajectory and primitive parameters
-horizon_num: 5            # grids num in horizon
-vertical_num: 3           # grids num in vertical
+horizon_num: 9            # grids num in horizon
+vertical_num: 5           # grids num in vertical
 horizon_camera_fov: 90.0  # horizon camera fov
 vertical_camera_fov: 60.0 # vertical camera fov
-horizon_anchor_fov: 30    # horizon fov of each gird
-vertical_anchor_fov: 30   # vertical fov of each grid
+horizon_anchor_fov: 9    # horizon fov of each gird
+vertical_anchor_fov: 6   # vertical fov of each grid
 goal_length: 10           # used for standardization of goal penalties (should >= 2 * radio_range)
 radio_range: 4.0          # planning horizon: 2 * radio_range
 vel_fov: 90.0             # not use currently

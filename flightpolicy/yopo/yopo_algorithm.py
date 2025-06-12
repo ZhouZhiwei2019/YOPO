@@ -5,6 +5,7 @@ supervised learning, imitation learning, testing, rollout
 import time
 from copy import deepcopy
 import os
+import math
 import random
 import cv2
 import numpy as np
@@ -24,6 +25,28 @@ from flightpolicy.yopo.primitive_utils import LatticeParam, LatticePrimitive
 from flightpolicy.yopo.buffers import ReplayBuffer
 from ruamel.yaml import YAML
 
+
+def warmup_cosine_schedule(peak_lr=1e-3, final_lr=1e-5, warmup_pct=0.05, decay_pct=0.2):
+    def schedule(progress_remaining: float) -> float:
+        p = progress_remaining  # 1.0 → 0.0
+
+        if p > 1.0 or p < 0.0:
+            raise ValueError("progress must be in [0, 1], got {}".format(p))
+
+        progress = 1.0 - p  # 映射为 [0, 1] 的训练进度
+
+        if progress < warmup_pct:
+            # Warmup linearly from near zero
+            return peak_lr * (progress / warmup_pct)
+        elif progress > 1.0 - decay_pct:
+            # Cosine decay
+            decay_progress = (progress - (1.0 - decay_pct)) / decay_pct
+            cosine_decay = 0.5 * (1 + math.cos(math.pi * decay_progress))
+            return final_lr + (peak_lr - final_lr) * cosine_decay
+        else:
+            # Hold peak
+            return peak_lr
+    return schedule
 
 class YopoAlgorithm:
     def __init__(
@@ -50,7 +73,11 @@ class YopoAlgorithm:
         self.n_envs = env.num_envs
         self.env = env
         # training
-        self.learning_rate = learning_rate
+        self.dataset = YopoDataset()  # 在 __init__ 中创建一次
+        # self.learning_rate = learning_rate
+        # self.learning_rate = linear_schedule(learning_rate)  # 启用线性衰减学习率策略：从 learning_rate → 0
+        # 原始传入值如 1e-3, 训练末尾最低学习率, 前 5% 用于 warmup, 后 20% 用于 cosine decay
+        self.learning_rate = warmup_cosine_schedule(peak_lr=learning_rate, final_lr=1e-5, warmup_pct=0.05, decay_pct=0.2)
         self.batch_size = batch_size
         self.max_grad_norm = max_grad_norm
         self.unselect = unselect
@@ -111,7 +138,15 @@ class YopoAlgorithm:
 
     def supervised_learning(self, epoch, log_interval):
         self.policy.set_training_mode(True)
-        data_loader = DataLoader(YopoDataset(), batch_size=self.batch_size, shuffle=True, num_workers=0)
+        data_loader = DataLoader(
+            self.dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=32,
+            prefetch_factor=8,
+            pin_memory=True,
+            persistent_workers=True
+        )
 
         n_updates = 0
         start_time = time.time()
@@ -267,6 +302,10 @@ class YopoAlgorithm:
         """
         self.policy.set_training_mode(True) # Switch to train mode (this affects batch norm / dropout)
         update_learning_rate(self.policy.optimizer, self.lr_schedule(self._current_progress_remaining))
+        for param_group in self.policy.optimizer.param_groups:
+            current_lr = param_group['lr']
+            break
+        self.logger.record("train/learning_rate", current_lr)
 
         cost_losses = []
         score_losses = []  # dy, dz, r, p, vx, vy, vz

@@ -7,6 +7,7 @@ from flightgym import QuadrotorEnv_v1
 from ruamel.yaml import YAML, RoundTripDumper, dump
 from flightpolicy.envs import vec_env_wrapper as wrapper
 from flightpolicy.yopo.yopo_algorithm import YopoAlgorithm
+from tensorboard_monitor import ResourceMonitor
 
 
 def configure_random_seed(seed, env=None):
@@ -72,7 +73,7 @@ def main():
         train_freq=200,                     # How many steps of data to collect from each environment per round
         gradient_steps=200,                 # How many steps to train per round
         change_env_freq=20,                 # How many rounds of "collect-train" to reset the tree (-1: not reset)
-        learning_rate=1.5e-4,               # Learning rate
+        learning_rate=1.0e-3,               # Learning rate
         batch_size=cfg["env"]["num_envs"],  # Equal to the number of environment, as gradients are from environments
         buffer_size=100000,                 # Buffer size
         loss_weight=[1.0, 10.0],            # Weights for the costs of endstate and score
@@ -101,10 +102,10 @@ def main():
             print("use pretrained model ", weight)
 
         if args.supervised:
-            model.supervised_learning(epoch=int(400), log_interval=(25, 2500))  # How many batches to print and save
+            model.supervised_learning(epoch=int(750), log_interval=(100, 15000))  # How many batches to print and save
 
         elif args.imitation:
-            model.imitation_learning(total_timesteps=int(1 * 1e6), log_interval=(1, 40))
+            model.imitation_learning(total_timesteps=int(1 * 1e7), log_interval=(1, 40))
 
     else:
         weight = rsg_root + "/saved/YOPO_{}/Policy/epoch{}_iter{}.pth".format(args.trial, args.epoch, args.iter)
