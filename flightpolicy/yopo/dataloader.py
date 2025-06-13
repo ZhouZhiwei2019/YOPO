@@ -11,7 +11,7 @@ class YopoDataset(Dataset):
     def __init__(self):
         super(YopoDataset, self).__init__()
         cfg = YAML().load(open(os.environ["FLIGHTMARE_PATH"] + "/flightlib/configs/traj_opt.yaml", 'r'))
-        scale = 32  # 神经网络下采样倍数
+        scale = 32  # 神经网络下采样倍数，图像分辨率除以这个
         self.height = scale * cfg["vertical_num"]
         self.width = scale * cfg["horizon_num"]
         multiple_ = 0.5 * cfg["vel_max"]

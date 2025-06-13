@@ -20,7 +20,7 @@ rgb_camera_left:
 rgb_camera_right:
   on: no
   t_BC: [0.0, -0.2, 0.1]  # translational vector of the camera with repect to the body frame
-  r_BC: [0.0, 0.0, -90]  # rotational angle (roll, pitch, yaw) of the camera in degree.
+  r_BC: [0.0, 0.0, -90]  # rotational angle (roll, pitch, yaw) of the camera in degree
 
 unity:
   spawn_trees: true

@@ -73,7 +73,7 @@ def main():
         train_freq=200,                     # How many steps of data to collect from each environment per round
         gradient_steps=200,                 # How many steps to train per round
         change_env_freq=20,                 # How many rounds of "collect-train" to reset the tree (-1: not reset)
-        learning_rate=5.0e-5,               # Learning rate
+        learning_rate=3.0e-4,               # Learning rate
         batch_size=cfg["env"]["num_envs"],  # Equal to the number of environment, as gradients are from environments
         buffer_size=100000,                 # Buffer size
         loss_weight=[1.0, 10.0],            # Weights for the costs of endstate and score
