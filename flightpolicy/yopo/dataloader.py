@@ -85,9 +85,10 @@ class YopoDataset(Dataset):
 
         right_skewed_vx = -1
         while right_skewed_vx < 0:
-            right_skewed_vx = np.random.lognormal(mean=self.vx_lognorm_mean, sigma=self.vx_logmorm_sigma)
-            right_skewed_vx = -right_skewed_vx + self.v_max + 0.2
+            right_skewed_vx = np.random.lognormal(mean=self.vx_lognorm_mean, sigma=self.vx_logmorm_sigma, size=None)
+            right_skewed_vx = -right_skewed_vx + self.v_max + 0.2  # +0.2 to ensure v_max can be sampled
         vel[0] = right_skewed_vx
+        # distribution of vx is visualized in docs/distribution_of_sampled_velocity.png (v_max=6)
         return vel, acc
 
 
@@ -105,6 +106,10 @@ if __name__ == '__main__':
 
     start = time.time()
     for i, (depth, pos, quat, obs, idx) in enumerate(data_loader):
+        max_val = depth.max()
+        min_val = depth.min()
+        if max_val > 1 or min_val < 0:
+            print(f"Image {i} has values out of range: max={max_val}, min={min_val}")
         print(f"Batch {i} loaded: shape={depth.shape}")
         if i >= 5:
             break

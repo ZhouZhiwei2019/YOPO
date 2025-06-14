@@ -25,18 +25,8 @@ from flightpolicy.yopo.primitive_utils import LatticeParam, LatticePrimitive
 from flightpolicy.yopo.buffers import ReplayBuffer
 from ruamel.yaml import YAML
 
+def warmup_cosine_schedule(peak_lr=1.0e-4, final_lr=1e-6, warmup_pct=0.2, decay_pct=0.2):
 
-def scale_learning_rate(base_lr: float, batch_size: int, ref_batch_size: int = 16, mode: str = "sqrt") -> float:
-    if mode == "linear":
-        scale = batch_size / ref_batch_size
-    elif mode == "sqrt":
-        scale = (batch_size / ref_batch_size) ** 0.5
-    else:
-        raise ValueError("Unsupported mode: use 'linear' or 'sqrt'")
-
-    return base_lr / scale  # smaller lr for larger batch size
-
-def warmup_cosine_schedule(peak_lr=1.0e-4, final_lr=1e-6, warmup_pct=0.1, decay_pct=0.2):
     def schedule(progress_remaining: float) -> float:
         p = progress_remaining  # 1.0 → 0.0
         progress = 1.0 - p
@@ -54,7 +44,7 @@ class YopoAlgorithm:
     def __init__(
             self,
             env=None,
-            learning_rate=0.0001,
+            learning_rate=0.001,
             is_imitation=False,
             buffer_size=1_000_000,
             learning_starts=100,
@@ -76,9 +66,8 @@ class YopoAlgorithm:
         self.env = env
         # training
         self.dataset = YopoDataset()
-        scaled_peak_lr = scale_learning_rate(base_lr=learning_rate, batch_size=batch_size, ref_batch_size=16, mode="sqrt")
         # self.learning_rate = learning_rate
-        self.learning_rate = warmup_cosine_schedule(peak_lr=scaled_peak_lr, final_lr=1e-6, warmup_pct=0.1, decay_pct=0.2)
+        self.learning_rate = warmup_cosine_schedule(peak_lr=learning_rate, final_lr=1e-6, warmup_pct=0.2, decay_pct=0.2)
         self.batch_size = batch_size
         self.max_grad_norm = max_grad_norm
         self.unselect = unselect
@@ -154,8 +143,11 @@ class YopoAlgorithm:
         for epoch_ in range(epoch):
             cost_losses = []   # Performance (score) of prediction
             score_losses = []  # Accuracy of the predicted score
+            print(f"\n[Epoch {epoch_+1}/{epoch}] Starting epoch...")
+
             for step, (depth, pos, quat, obs_b, map_id) in enumerate(data_loader):  # obs: body frame
                 if depth.shape[0] != self.batch_size:  # batch size == num of env
+                    print(f"[Warning] Skipping batch with size {depth.shape[0]}")
                     continue
                 n_updates = n_updates + 1
                 depth = depth.to(self.device)
@@ -183,6 +175,15 @@ class YopoAlgorithm:
                 cost_losses.append(self.loss_weight[0] * cost_labels_record.item())
                 score_losses.append(self.loss_weight[1] * score_loss.item())
 
+                # print(f"[Detail] Raw cost label mean: {cost_labels_record.item():.4f}, Filtered: {cost_loss.item():.4f}")
+                # print(f"[Debug] endstate_score_predictions.shape = {endstate_score_predictions.shape}")
+                # print(f"[Debug] score_labels.shape = {score_labels.shape}")
+                total_steps = epoch * len(data_loader)
+                current_step = epoch_ * len(data_loader) + step
+                progress_remaining = 1.0 - (current_step / total_steps)
+                current_lr = self.lr_schedule(progress_remaining)
+                update_learning_rate(self.policy.optimizer, current_lr)
+
                 # Optimize the policy
                 self.policy.optimizer.zero_grad()
                 loss.backward()
@@ -191,6 +192,11 @@ class YopoAlgorithm:
                 self.policy.optimizer.step()
 
                 if log_interval is not None and n_updates % log_interval[0] == 0:
+                    print(f"[Iter {n_updates}] Cost Loss: {cost_loss.item():.4f}, Score Loss: {score_loss.item():.4f}, Batch FPS: {log_interval[0] / (time.time() - start_time):.2f}")
+                    print(f"[Confirm] optimizer lr1111111 = {self.policy.optimizer.param_groups[0]['lr']:.6e}, progress={1 - progress_remaining:.4f}")
+                    print(f"[Detail] Raw cost label mean: {cost_labels_record.item():.4f}, Filtered: {cost_loss.item():.4f}")
+                    print(f"[Debug] endstate_score_predictions.shape = {endstate_score_predictions.shape}")
+                    print(f"[Debug] score_labels.shape = {score_labels.shape}")
                     self.logger.record("time/epoch", epoch_, exclude="tensorboard")
                     self.logger.record("time/steps", n_updates, exclude="tensorboard")
                     self.logger.record("time/batch_fps", log_interval[0] / (time.time() - start_time), exclude="tensorboard")
@@ -206,6 +212,7 @@ class YopoAlgorithm:
                     os.makedirs(policy_path, exist_ok=True)
                     path = policy_path + "/epoch{}_iter{}.pth".format(epoch_, step)
                     th.save({"state_dict": self.policy.state_dict(), "data": self.policy.get_constructor_parameters()}, path)
+                    print(f"[Save] Model saved at: {path}")
 
     def imitation_learning(
             self,
@@ -305,11 +312,11 @@ class YopoAlgorithm:
         update_learning_rate(self.policy.optimizer, self.lr_schedule(self._current_progress_remaining))
 
         # 记录当前学习率到 TensorBoard
-        for param_group in self.policy.optimizer.param_groups:
-            current_lr = param_group['lr']
-            break
-        self.logger.record("train/learning_rate", current_lr)
-        self.logger.record("train/progress_remaining", self._current_progress_remaining)
+        # for param_group in self.policy.optimizer.param_groups:
+        #     current_lr = param_group['lr']
+        #     break
+        # self.logger.record("train/learning_rate", current_lr)
+        # self.logger.record("train/progress_remaining", self._current_progress_remaining)
 
         cost_losses = []
         score_losses = []  # dy, dz, r, p, vx, vy, vz
@@ -346,6 +353,8 @@ class YopoAlgorithm:
             loss = self.loss_weight[0] * cost_loss + self.loss_weight[1] * score_loss
             cost_losses.append(self.loss_weight[0] * cost_labels_record.item())
             score_losses.append(self.loss_weight[1] * score_loss.item())
+
+            print(f"[Confirm] optimizer lr2222 = {self.policy.optimizer.param_groups[0]['lr']:.6e}")
 
             # Optimize the policy
             self.policy.optimizer.zero_grad()

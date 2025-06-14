@@ -28,7 +28,7 @@ def parser():
     parser.add_argument("--seed", type=int, default=0, help="random seed")
     parser.add_argument("--train", type=int, default=1, help="train or evaluate the policy?")
     parser.add_argument("--render", type=int, default=0, help="render with Unity?")
-    parser.add_argument("--trial", type=int, default=4, help="trial number")
+    parser.add_argument("--trial", type=int, default=1, help="trial number")
     parser.add_argument("--epoch", type=int, default=0, help="epoch number")
     parser.add_argument("--iter", type=int, default=0, help="iter number")
     parser.add_argument("--pretrained", type=int, default=0, help="use pre-trained model?")
@@ -73,7 +73,7 @@ def main():
         train_freq=200,                     # How many steps of data to collect from each environment per round
         gradient_steps=200,                 # How many steps to train per round
         change_env_freq=20,                 # How many rounds of "collect-train" to reset the tree (-1: not reset)
-        learning_rate=3.0e-4,               # Learning rate
+        learning_rate=5.0e-5,               # Learning rate
         batch_size=cfg["env"]["num_envs"],  # Equal to the number of environment, as gradients are from environments
         buffer_size=100000,                 # Buffer size
         loss_weight=[1.0, 10.0],            # Weights for the costs of endstate and score
