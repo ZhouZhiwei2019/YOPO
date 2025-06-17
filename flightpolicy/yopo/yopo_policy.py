@@ -53,6 +53,11 @@ class YopoPolicy(nn.Module):
         input_dim = self.hidden_state + 9
         self.image_backbone = YopoBackbone(self.hidden_state, self.lattice_space.horizon_num * self.lattice_space.vertical_num)
         self.state_backbone = nn.Sequential()
+        # 把 9 通道的 obs_input 变换到 hidden_state 通道
+        # self.state_backbone = nn.Sequential(
+        #     nn.Conv2d(9, self.hidden_state, kernel_size=1),
+        #     self.activation_fn()
+        # )
         self.yopo_header = self.create_header(input_dim, output_dim, self.net_arch, self.activation_fn)
         self.grad_layer = CostAndGradLayer.apply
         # Setup optimizer with initial learning rate
@@ -66,6 +71,8 @@ class YopoPolicy(nn.Module):
         """
         depth_feature = self.image_backbone(depth)
         obs_feature = self.state_backbone(obs)
+        # print("[Debug] depth_feature.shape =", depth_feature.shape)
+        # print("[Debug] obs_feature.shape =", obs_feature.shape)
         input_tensor = th.cat((obs_feature, depth_feature), 1)
         output = self.yopo_header(input_tensor)
         endstate = th.tanh(output[:, :9])

@@ -162,7 +162,7 @@ class YopoNet:
             return
 
         # 1. Depth Image Process
-        min_dis, max_dis = 0.03, 20.0
+        min_dis, max_dis = 0.03, 15.0
         scale = {'435': 0.001, 'flightmare': 1.0}.get(self.env, 1.0)
 
         try:
@@ -178,11 +178,14 @@ class YopoNet:
         # print(f"[Depth callback] Encoding: {data.encoding}, Shape: {data.height}x{data.width}")
         # print(f"[Depth callback] Depth min: {np.nanmin(depth):.3f}, max: {np.nanmax(depth):.3f}")
         # print(f"[Depth callback] Scale used: {scale}")
+        # print(f"[Depth] original shape: {depth.shape}")  # (H, W) 或 (H, W, 1)
 
         time0 = time.time()
         if depth.shape[0] != self.height or depth.shape[1] != self.width:
             depth = cv2.resize(depth, (self.width, self.height), interpolation=cv2.INTER_NEAREST)
-        depth = np.minimum(depth * scale, max_dis) / max_dis
+            # print(f"[Depth] resized  shape: {depth.shape}")  # 应等于 (self.height, self.width)
+        else:
+            print("[Depth] resize not needed")
 
         # interpolated the nan value (experiment shows that treating nan directly as 0 produces similar results)
         nan_mask = np.isnan(depth) | (depth < min_dis)
@@ -276,7 +279,7 @@ class YopoNet:
             control_msg.acceleration_or_force.z = self.optimal_poly_z.get_acceleration(self.ctrl_time)
             self.desire_pos = np.array([control_msg.position.x, control_msg.position.y, control_msg.position.z])
             self.desire_vel = np.array([control_msg.velocity.x, control_msg.velocity.y, control_msg.velocity.z])
-            self.desire_acc = np.array([control_msg.acceleration.x, control_msg.acceleration.y, control_msg.acceleration.z])
+            self.desire_acc = np.array([control_msg.acceleration_or_force.x, control_msg.acceleration_or_force.y, control_msg.acceleration_or_force.z])
             goal_dir = self.goal - self.desire_pos
             yaw, yaw_dot = calculate_yaw(self.desire_vel, goal_dir, self.last_yaw, self.ctrl_dt)
             self.last_yaw = yaw
@@ -284,6 +287,7 @@ class YopoNet:
             control_msg.yaw_rate = yaw_dot
             self.desire_init = True
             self.ctrl_pub.publish(control_msg)
+            print(f"New pub: ({control_msg.position.x:.1f}, {control_msg.position.y:.1f}, {control_msg.position.z:.1f})")
 
     def process_output(self, network_output, return_all_preds=False):
         if network_output.shape[0] != 1:
@@ -425,7 +429,7 @@ class YopoNet:
 def parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--use_tensorrt", type=int, default=0, help="use tensorrt or not")
-    parser.add_argument("--trial", type=int, default=2, help="trial number")
+    parser.add_argument("--trial", type=int, default=24, help="trial number")
     parser.add_argument("--epoch", type=int, default=0, help="epoch number")
     parser.add_argument("--iter", type=int, default=0, help="iter number")
     parser.add_argument("--trt_file", type=str, default='yopo_trt.pth', help="tensorrt filename")
@@ -442,13 +446,13 @@ def main():
     print("load weight from:", weight)
 
     settings = {'use_tensorrt': args.use_tensorrt,
-                'img_height': 480,
-                'img_width': 640,
+                'img_height': 90,
+                'img_width': 160,
                 'goal': [20, 20, 2],           # the goal
                 'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
                 'pitch_angle_deg': 0.0,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'odom_topic': '/drone0/mavros/local_position/odom',
-                'depth_topic': '/iris0/camera/depth/image_raw/new',
+                'depth_topic': '/iris0/camera/depth/image_raw',
                 'verbose': True,              # print the latency?
                 'visualize': True              # visualize all predictions? set False in real flight
                 }
