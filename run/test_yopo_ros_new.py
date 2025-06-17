@@ -114,9 +114,9 @@ class YopoNet:
         rospy.spin()
 
     def callback_set_goal(self, data):
-        self.goal = np.asarray([data.pose.position.x, data.pose.position.y, 2])
+        self.goal = np.asarray([data.pose.position.x, data.pose.position.y, 20.0])
         self.arrive = False
-        print(f"New Goal: ({data.pose.position.x:.1f}, {data.pose.position.y:.1f})")
+        print(f"New Goal: ({data.pose.position.x:.1f}, {data.pose.position.y:.1f}, 20.0)")
 
     # the first frame
     def callback_odometry(self, data):
@@ -131,7 +131,9 @@ class YopoNet:
         self.odom_init = True
 
         pos = np.array((self.odom.pose.pose.position.x, self.odom.pose.pose.position.y, self.odom.pose.pose.position.z))
-        if np.linalg.norm(pos - self.goal) < 4 and not self.arrive:
+        print(f"pos: ({pos[0]:.3f}, {pos[1]:.3f}, {pos[2]:.3f}), ")
+
+        if np.linalg.norm(pos - self.goal) < 1.0 and not self.arrive:
             print("Arrive!")
             self.arrive = True
 
@@ -141,6 +143,7 @@ class YopoNet:
                                    self.odom.pose.pose.orientation.z, self.odom.pose.pose.orientation.w]).as_matrix()
         self.Rotation_wc = np.dot(Rotation_wb, self.Rotation_bc)
         Rotation_cw = self.Rotation_wc.T
+        print(f"self.goal: ({self.goal})")
 
         # vel and acc
         vel_w = self.desire_vel
@@ -287,7 +290,7 @@ class YopoNet:
             control_msg.yaw_rate = yaw_dot
             self.desire_init = True
             self.ctrl_pub.publish(control_msg)
-            print(f"New pub: ({control_msg.position.x:.1f}, {control_msg.position.y:.1f}, {control_msg.position.z:.1f})")
+            print(f"set pub: ({control_msg.position.x:.3f}, {control_msg.position.y:.3f}, {control_msg.position.z:.3f})")
 
     def process_output(self, network_output, return_all_preds=False):
         if network_output.shape[0] != 1:
@@ -448,7 +451,7 @@ def main():
     settings = {'use_tensorrt': args.use_tensorrt,
                 'img_height': 90,
                 'img_width': 160,
-                'goal': [20, 20, 2],           # the goal
+                'goal': [5, 0, 5],           # the goal
                 'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
                 'pitch_angle_deg': 0.0,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'odom_topic': '/drone0/mavros/local_position/odom',
