@@ -16,7 +16,7 @@ SAVE_PATH = "/home/zzw/YOPO/run/yopo_gazebo/map1.ply"
 DEPTH_TOPIC = "/iris0/camera/depth/image_raw" 
 CAMERA_INFO_TOPIC = "/iris0/camera/depth/camera_info"
 ODOM_TOPIC = "/drone0/mavros/local_position/odom"
-FRAME_ID = "world"
+FRAME_ID = "map"
 VOXEL_DOWNSAMPLE = 0.05
 
 # ---------- 相机参数 ----------

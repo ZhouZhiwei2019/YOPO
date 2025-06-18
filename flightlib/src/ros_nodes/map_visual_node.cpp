@@ -47,14 +47,14 @@ void odom_cb(const nav_msgs::Odometry::ConstPtr odom_msg, ros::Publisher* local_
 		}
 	}
 	pcl_conversions::toPCL(ros::Time::now(), local_map->header.stamp);
-	local_map->header.frame_id = "world";
+	local_map->header.frame_id = "map";
 	local_map_pub->publish(local_map);
 
 	// 3. publish UAV model
 	std::string mesh_resource = std::string("file://") + getenv("FLIGHTMARE_PATH") + std::string("/flightlib/src/ros_nodes/model/uav.dae");
 
 	visualization_msgs::Marker meshROS;
-	meshROS.header.frame_id = "world";
+	meshROS.header.frame_id = "map";
 	meshROS.header.stamp    = ros::Time::now();
 	meshROS.ns              = "mesh";
 	meshROS.id              = 0;

@@ -14,7 +14,7 @@ std::shared_ptr<sdf_tools::SignedDistanceField> SdfConstruction(pcl::PointCloud<
 	Eigen::Translation3d origin_translation(min.x, min.y, min.z);
 	Eigen::Quaterniond origin_rotation(1.0, 0.0, 0.0, 0.0);
 	const Eigen::Isometry3d origin_transform = origin_translation * origin_rotation;
-	const std ::string frame                 = "world";
+	const std ::string frame                 = "map";
 	map_boundary_min_sdf                     = Eigen::Vector3d(min.x, min.y, min.z);
 	map_boundary_max_sdf                     = Eigen::Vector3d(max.x, max.y, max.z);
 

@@ -99,7 +99,7 @@ void yopo_cb(const std_msgs::Float32MultiArray::ConstPtr msg) {
 		pcl::PointCloud<pcl::PointXYZI>::Ptr best_traj_cld(new pcl::PointCloud<pcl::PointXYZI>);
 		traj_to_pcl(traj_opt_bridge, best_traj_cld);
 		pcl_conversions::toPCL(ros::Time::now(), best_traj_cld->header.stamp);
-		best_traj_cld->header.frame_id = "world";
+		best_traj_cld->header.frame_id = "map";
 		best_traj_visual_pub.publish(best_traj_cld);
 	}
 	yopo_init = true;
@@ -129,7 +129,7 @@ void trajs_vis_cb(const std_msgs::Float32MultiArray::ConstPtr msg) {
 		traj_to_pcl(traj_opt_bridge_for_vis, trajs_cld, scores[i]);
 	}
 	pcl_conversions::toPCL(ros::Time::now(), trajs_cld->header.stamp);
-	trajs_cld->header.frame_id = "world";
+	trajs_cld->header.frame_id = "map";
 	trajs_visual_pub.publish(trajs_cld);
 
 	// ---------------- visualization of lattice ------------------------
@@ -143,7 +143,7 @@ void trajs_vis_cb(const std_msgs::Float32MultiArray::ConstPtr msg) {
 		traj_to_pcl(traj_opt_bridge_for_vis, lattice_trajs_cld);
 	}
 	pcl_conversions::toPCL(ros::Time::now(), lattice_trajs_cld->header.stamp);
-	lattice_trajs_cld->header.frame_id = "world";
+	lattice_trajs_cld->header.frame_id = "map";
 	lattice_trajs_visual_pub.publish(lattice_trajs_cld);
 }
 
@@ -266,7 +266,7 @@ void ref_pub_cb(const ros::TimerEvent&) {
 
 	// SO3 Simulator & SO3 Controller
 	quadrotor_msgs::PositionCommand cmd;
-	cmd.header.frame_id = "world";
+	cmd.header.frame_id = "map";
 	cmd.header.stamp    = ros::Time::now();
 	cmd.trajectory_flag = quadrotor_msgs::PositionCommand::TRAJECTORY_STATUS_READY;
 	cmd.position.x      = desired_p(0);

@@ -1,5 +1,5 @@
 # Maximum Speed: applicable when test speed not much higher than training
-vel_max: 2.0  # the given weights perform smoothly at speeds between 0 - 6 m/s
+vel_max: 6.0  # the given weights perform smoothly at speeds between 0 - 6 m/s
 # segment_time = 2 * radio / vel_max
 
 # IMPORTANT TRAINING PARAM: weight of penalties (6m/s)

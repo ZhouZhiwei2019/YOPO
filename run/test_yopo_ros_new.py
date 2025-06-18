@@ -48,7 +48,7 @@ class YopoNet:
         self.use_trt = self.config['use_tensorrt']
         self.verbose = self.config['verbose']
         self.visualize = self.config['visualize']
-        self.Rotation_bc = R.from_euler('ZYX', [0, self.config['pitch_angle_deg'], 0], degrees=True).as_matrix()
+        self.Rotation_bc = R.from_euler('ZYX', [self.config['roll_angle_deg'], self.config['pitch_angle_deg'], self.config['yaw_angle_deg']], degrees=True).as_matrix()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         cfg = YAML().load(open(os.environ["FLIGHTMARE_PATH"] + "/flightlib/configs/traj_opt.yaml", 'r'))
@@ -116,7 +116,6 @@ class YopoNet:
     def callback_set_goal(self, data):
         self.goal = np.asarray([data.pose.position.x, data.pose.position.y, 20.0])
         self.arrive = False
-        print(f"New Goal: ({data.pose.position.x:.1f}, {data.pose.position.y:.1f}, 20.0)")
 
     # the first frame
     def callback_odometry(self, data):
@@ -141,19 +140,32 @@ class YopoNet:
         # Rwb -> Rwc -> Rcw
         Rotation_wb = R.from_quat([self.odom.pose.pose.orientation.x, self.odom.pose.pose.orientation.y,
                                    self.odom.pose.pose.orientation.z, self.odom.pose.pose.orientation.w]).as_matrix()
+        
         self.Rotation_wc = np.dot(Rotation_wb, self.Rotation_bc)
         Rotation_cw = self.Rotation_wc.T
-        print(f"self.goal: ({self.goal})")
-
+        print("\nRotation_bc (camera to body):")
+        print(np.array2string(self.Rotation_bc, formatter={'float_kind':lambda x: f"{x: .3f}"}))
+        print("\nRotation_wb (body to world):")
+        print(np.array2string(Rotation_wb, formatter={'float_kind':lambda x: f"{x: .3f}"}))
+        print("\nRotation_wc (camera to world):")
+        print(np.array2string(self.Rotation_wc, formatter={'float_kind':lambda x: f"{x: .3f}"}))
+        print("\nRotation_cw (world to camera):")
+        print(np.array2string(Rotation_cw, formatter={'float_kind':lambda x: f"{x: .3f}"}))
         # vel and acc
         vel_w = self.desire_vel
         vel_c = np.dot(Rotation_cw, vel_w)
         acc_w = self.desire_acc
         acc_c = np.dot(Rotation_cw, acc_w)
-
+        print(f"\nvel_w: ({vel_w[0]:.3f}, {vel_w[1]:.3f}, {vel_w[2]:.3f}), ")
+        print(f"vel_c: ({vel_c[0]:.3f}, {vel_c[1]:.3f}, {vel_c[2]:.3f}), ")
         # pose and goal_dir
         goal_w = (self.goal - self.desire_pos) / np.linalg.norm(self.goal - self.desire_pos)
         goal_c = np.dot(Rotation_cw, goal_w)
+        print(f"self.goal: ({self.goal})")
+        print(f"self.desire_pos: ({self.desire_pos})")
+        print(f"goal_w: ({goal_w[0]:.3f}, {goal_w[1]:.3f}, {goal_w[2]:.3f}), ")
+        print(f"goal_c: ({goal_c[0]:.3f}, {goal_c[1]:.3f}, {goal_c[2]:.3f}), ")
+
 
         vel_acc = np.concatenate((vel_c, acc_c), axis=0)
         vel_acc_norm = self.normalize_obs(vel_acc[np.newaxis, :])
@@ -284,10 +296,10 @@ class YopoNet:
             self.desire_vel = np.array([control_msg.velocity.x, control_msg.velocity.y, control_msg.velocity.z])
             self.desire_acc = np.array([control_msg.acceleration_or_force.x, control_msg.acceleration_or_force.y, control_msg.acceleration_or_force.z])
             goal_dir = self.goal - self.desire_pos
-            yaw, yaw_dot = calculate_yaw(self.desire_vel, goal_dir, self.last_yaw, self.ctrl_dt)
-            self.last_yaw = yaw
-            control_msg.yaw = yaw
-            control_msg.yaw_rate = yaw_dot
+            # yaw, yaw_dot = calculate_yaw(self.desire_vel, goal_dir, self.last_yaw, self.ctrl_dt)
+            # self.last_yaw = yaw
+            # control_msg.yaw = yaw
+            # control_msg.yaw_rate = yaw_dot
             self.desire_init = True
             self.ctrl_pub.publish(control_msg)
             print(f"set pub: ({control_msg.position.x:.3f}, {control_msg.position.y:.3f}, {control_msg.position.z:.3f})")
@@ -372,7 +384,7 @@ class YopoNet:
             ), axis=-1)
             header = std_msgs.msg.Header()
             header.stamp = rospy.Time.now()
-            header.frame_id = 'world'
+            header.frame_id = 'map'
             point_cloud_msg = point_cloud2.create_cloud_xyz32(header, points_array)
             self.best_traj_pub.publish(point_cloud_msg)
         # lattice primitive
@@ -394,7 +406,7 @@ class YopoNet:
             ), axis=-1)
             header = std_msgs.msg.Header()
             header.stamp = rospy.Time.now()
-            header.frame_id = 'world'
+            header.frame_id = 'map'
             point_cloud_msg = point_cloud2.create_cloud_xyz32(header, points_array)
             self.lattice_traj_pub.publish(point_cloud_msg)
         # all predicted trajectories
@@ -415,7 +427,7 @@ class YopoNet:
             points_array = np.column_stack((points_array, scores))
             header = std_msgs.msg.Header()
             header.stamp = rospy.Time.now()
-            header.frame_id = 'world'
+            header.frame_id = 'map'
             fields = [PointField('x', 0, PointField.FLOAT32, 1), PointField('y', 4, PointField.FLOAT32, 1),
                       PointField('z', 8, PointField.FLOAT32, 1), PointField('intensity', 12, PointField.FLOAT32, 1)]
             point_cloud_msg = point_cloud2.create_cloud(header, fields, points_array)
@@ -451,9 +463,11 @@ def main():
     settings = {'use_tensorrt': args.use_tensorrt,
                 'img_height': 90,
                 'img_width': 160,
-                'goal': [5, 0, 5],           # the goal
+                'goal': [0, 0, 20],           # the goal
                 'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
-                'pitch_angle_deg': 0.0,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
+                'roll_angle_deg': 0.0,           # roll of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
+                'pitch_angle_deg': -90.0,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
+                'yaw_angle_deg': 90.0,          # yaw of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'odom_topic': '/drone0/mavros/local_position/odom',
                 'depth_topic': '/iris0/camera/depth/image_raw',
                 'verbose': True,              # print the latency?
