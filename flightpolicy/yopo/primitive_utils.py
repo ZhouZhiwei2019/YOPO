@@ -75,6 +75,8 @@ class LatticePrimitive():
                         lattice_angle_list.append([alpha, beta])
                         # inner rotation: yaw-pitch-roll
                         Rotation = R.from_euler('ZYX', [alpha, -beta, 0.0], degrees=False)
+                        print("\ninner Rotation---------------------------------------:")
+                        print(np.array2string(Rotation.as_matrix(), formatter={'float_kind':lambda x: f"{x: .3f}"}))
                         self.lattice_Rbp_list.append(Rotation.as_matrix().astype(np.float32))
 
         self.lattice_pos_node = np.array(lattice_pos_list)
