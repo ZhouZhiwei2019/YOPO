@@ -10,8 +10,8 @@ class LatticeParam():
         self.vertical_num = cfg["vertical_num"]
         self.radio_num = cfg["radio_num"]
         self.vel_num = cfg["vel_num"]
-        self.horizon_fov = cfg["horizon_camera_fov"] * (self.horizon_num - 1) / self.horizon_num
-        self.vertical_fov = cfg["vertical_camera_fov"] * (self.vertical_num - 1) / self.vertical_num
+        self.horizon_fov = cfg["horizon_camera_fov"] * (self.horizon_num - 1) / self.horizon_num # 90 * 4 / 5 
+        self.vertical_fov = cfg["vertical_camera_fov"] * (self.vertical_num - 1) / self.vertical_num # 60 * 2 / 3
         self.horizon_anchor_fov = cfg["horizon_anchor_fov"]
         self.vertical_anchor_fov = cfg["vertical_anchor_fov"]
         self.radio_range = cfg["radio_range"]
@@ -36,11 +36,13 @@ class LatticePrimitive():
         if self.lattice_param.horizon_num == 1:
             direction_diff = 0
         else:
-            direction_diff = (self.lattice_param.horizon_fov / 180.0 * np.pi) / (self.lattice_param.horizon_num - 1)
+            direction_diff = (self.lattice_param.horizon_fov / 180.0 * np.pi) / (self.lattice_param.horizon_num - 1) # 72 / 4
+            print(f"direction_diff : ({direction_diff * 180.0 / np.pi })")
         if self.lattice_param.vertical_num == 1:
             altitude_diff = 0
         else:
-            altitude_diff = (self.lattice_param.vertical_fov / 180.0 * np.pi) / (self.lattice_param.vertical_num - 1)
+            altitude_diff = (self.lattice_param.vertical_fov / 180.0 * np.pi) / (self.lattice_param.vertical_num - 1) # 40 / 2
+            print(f"altitude_diff : ({altitude_diff * 180.0 / np.pi })")
         radio_diff = self.lattice_param.radio_range / self.lattice_param.radio_num
         if self.lattice_param.vel_num == 1:
             vel_dir_diff = 0
@@ -50,7 +52,7 @@ class LatticePrimitive():
         lattice_pos_list = []
         lattice_vel_list = []
         lattice_angle_list = []
-        self.lattice_Rbp_list = []
+        self.lattice_Rpb_list = []
 
         # Primitives: Bottom to Top, Right to Left
         # We retain the code of sampling primitives with different velocity directions and length,
@@ -60,8 +62,8 @@ class LatticePrimitive():
                 for j in range(0, self.lattice_param.horizon_num):
                     for k in range(0, self.lattice_param.vel_num):
                         search_radio = (h + 1) * radio_diff
-                        alpha = -direction_diff * (self.lattice_param.horizon_num - 1) / 2 + j * direction_diff
-                        beta = -altitude_diff * (self.lattice_param.vertical_num - 1) / 2 + i * altitude_diff
+                        alpha = -direction_diff * (self.lattice_param.horizon_num - 1) / 2 + j * direction_diff #-36，-18, 0, 18, 36
+                        beta = -altitude_diff * (self.lattice_param.vertical_num - 1) / 2 + i * altitude_diff #-20， 0, 20
                         gamma = -vel_dir_diff * (self.lattice_param.vel_num - 1) / 2 + k * vel_dir_diff
 
                         pos_node = [np.cos(beta) * np.cos(alpha) * search_radio,
@@ -73,11 +75,11 @@ class LatticePrimitive():
                         lattice_pos_list.append(pos_node)
                         lattice_vel_list.append(vel_node)
                         lattice_angle_list.append([alpha, beta])
-                        # inner rotation: yaw-pitch-roll
+                        # inner rotation: yaw-pitch-roll, # body → primitive
                         Rotation = R.from_euler('ZYX', [alpha, -beta, 0.0], degrees=False)
-                        print("\ninner Rotation---------------------------------------:")
+                        print(f"\ninner Rotation----with respect euler ZYX (yaw, pitch, roll)--------:({[alpha * 180.0 / np.pi, -beta * 180.0 / np.pi, 0.0]})")
                         print(np.array2string(Rotation.as_matrix(), formatter={'float_kind':lambda x: f"{x: .3f}"}))
-                        self.lattice_Rbp_list.append(Rotation.as_matrix().astype(np.float32))
+                        self.lattice_Rpb_list.append(Rotation.as_matrix().astype(np.float32))
 
         self.lattice_pos_node = np.array(lattice_pos_list)
         self.lattice_vel_node = np.array(lattice_vel_list)
@@ -85,6 +87,9 @@ class LatticePrimitive():
 
         self.yaw_diff = 0.5 * self.lattice_param.horizon_anchor_fov / 180.0 * np.pi
         self.pitch_diff = 0.5 * self.lattice_param.vertical_anchor_fov / 180.0 * np.pi
+        print(f"self.yaw_diff : ({self.yaw_diff * 180.0 / np.pi })")
+        print(f"self.pitch_diff : ({self.pitch_diff * 180.0 / np.pi })")
+
 
     def getStateLattice(self, id):
         return self.lattice_pos_node[id, :], self.lattice_vel_node[id, :]
@@ -94,7 +99,7 @@ class LatticePrimitive():
         return self.lattice_angle_node[id, 0], self.lattice_angle_node[id, 1]
 
     def getRotation(self, id):
-        return self.lattice_Rbp_list[id]
+        return self.lattice_Rpb_list[id]
 
 
 class Poly5Solver:

@@ -25,7 +25,7 @@ from flightpolicy.yopo.primitive_utils import LatticeParam, LatticePrimitive
 from flightpolicy.yopo.buffers import ReplayBuffer
 from ruamel.yaml import YAML
 
-def warmup_cosine_schedule(peak_lr=1.0e-6, final_lr=1.0e-8, warmup_pct=0.2, decay_pct=0.2):
+def warmup_cosine_schedule(peak_lr=1.0e-6, final_lr=5.0e-8, warmup_pct=0.1, decay_pct=0.4):
 
     def schedule(progress_remaining: float) -> float:
         p = progress_remaining  # 1.0 → 0.0
@@ -67,7 +67,7 @@ class YopoAlgorithm:
         # training
         self.dataset = YopoDataset()
         # self.learning_rate = learning_rate
-        self.learning_rate = warmup_cosine_schedule(peak_lr=learning_rate, final_lr=1.0e-8, warmup_pct=0.2, decay_pct=0.2)
+        self.learning_rate = warmup_cosine_schedule(peak_lr=learning_rate, final_lr=5.0e-8, warmup_pct=0.1, decay_pct=0.4)
         self.batch_size = batch_size
         self.max_grad_norm = max_grad_norm
         self.unselect = unselect

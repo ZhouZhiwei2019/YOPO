@@ -339,8 +339,10 @@ class YopoNet:
         obs_reshaped = obs.reshape(3, 3)
         for i in range(self.lattice_space.vertical_num - 1, -1, -1):
             for j in range(self.lattice_space.horizon_num - 1, -1, -1):
-                Rbp = self.lattice_primitive.getRotation(id)
-                obs_return_reshaped = np.dot(obs_reshaped, Rbp)
+                Rpb = self.lattice_primitive.getRotation(id)  # body → primitive
+                print(f"\nfrom body frame to primitive  ({id} ) frame in prepare_input_observation :")
+                print(np.array2string(Rpb, formatter={'float_kind':lambda x: f"{x: .3f}"}))
+                obs_return_reshaped = np.dot(obs_reshaped, Rpb) #有问题，反了，但是修改又需要和物理含义对应上才行
                 obs_return[:, :, i, j] = obs_return_reshaped.reshape(9)
                 id = id + 1
         return torch.from_numpy(obs_return)
@@ -360,9 +362,11 @@ class YopoNet:
 
         endstate_vp = endstate_pred[3:6] * self.lattice_space.vel_max
         endstate_ap = endstate_pred[6:9] * self.lattice_space.acc_max
-        Rpb = self.lattice_primitive.getRotation(id).T
-        endstate_vb = np.matmul(endstate_vp, Rpb)
-        endstate_ab = np.matmul(endstate_ap, Rpb)
+        Rbp = self.lattice_primitive.getRotation(id).T 
+        print(f"\nfrom primitive : ({id} ) frame to body frame in pred_to_endstate :")
+        print(np.array2string(Rbp, formatter={'float_kind':lambda x: f"{x: .3f}"}))
+        endstate_vb = np.matmul(endstate_vp, Rbp)
+        endstate_ab = np.matmul(endstate_ap, Rbp)  #有问题，反了，但是修改又需要和物理含义对应上才行
         endstate = np.concatenate((endstate_p, endstate_vb, endstate_ab))
         endstate[[0, 1, 2, 3, 4, 5, 6, 7, 8]] = endstate[[0, 3, 6, 1, 4, 7, 2, 5, 8]]
         return endstate
@@ -463,7 +467,7 @@ def main():
     settings = {'use_tensorrt': args.use_tensorrt,
                 'img_height': 90,
                 'img_width': 160,
-                'goal': [0, 0, 20],           # the goal
+                'goal': [0, 30, 0],           # the goal
                 'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
                 'roll_angle_deg': 0.0,           # roll of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'pitch_angle_deg': -90.0,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)

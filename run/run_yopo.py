@@ -102,7 +102,7 @@ def main():
             print("use pretrained model ", weight)
 
         if args.supervised:
-            model.supervised_learning(epoch=int(1200), log_interval=(100, 15000))  # How many batches to print and save
+            model.supervised_learning(epoch=int(1500), log_interval=(100, 15000))  # How many batches to print and save
 
         elif args.imitation:
             model.imitation_learning(total_timesteps=int(1 * 1e7), log_interval=(1, 40))
