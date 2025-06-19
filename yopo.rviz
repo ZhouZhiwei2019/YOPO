@@ -13,7 +13,6 @@ Panels:
         - /Traj1/PointCloud22
         - /Image2
         - /PointCloud22
-        - /PointCloud22/Status1
         - /Odometry1
         - /Odometry1/Shape1
       Splitter Ratio: 0.5
@@ -106,8 +105,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 24.94316291809082
-            Min Value: 23.057083129882812
+            Max Value: 4.848206520080566
+            Min Value: 4.259016513824463
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -124,7 +123,7 @@ Visualization Manager:
           Queue Size: 10
           Selectable: true
           Size (Pixels): 3
-          Size (m): 0.5
+          Size (m): 0.3499999940395355
           Style: Spheres
           Topic: /yopo_net/best_traj_visual
           Unreliable: false
@@ -300,7 +299,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 177.18215942382812
+      Distance: 55.92262649536133
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -308,17 +307,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -45.77291488647461
-        Y: 33.28316116333008
-        Z: 20.52098846435547
+        X: 9.872875213623047
+        Y: -32.717262268066406
+        Z: -0.2735567092895508
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.15979702770709991
+      Pitch: 0.22479626536369324
       Target Frame: world
-      Yaw: 5.926361560821533
+      Yaw: 1.916351079940796
     Saved: ~
 Window Geometry:
   Displays:

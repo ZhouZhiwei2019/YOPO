@@ -132,7 +132,7 @@ class YopoNet:
         pos = np.array((self.odom.pose.pose.position.x, self.odom.pose.pose.position.y, self.odom.pose.pose.position.z))
         print(f"pos: ({pos[0]:.3f}, {pos[1]:.3f}, {pos[2]:.3f}), ")
 
-        if np.linalg.norm(pos - self.goal) < 1.0 and not self.arrive:
+        if np.linalg.norm(pos - self.goal) < 4.0 and not self.arrive:
             print("Arrive!")
             self.arrive = True
 
@@ -161,15 +161,27 @@ class YopoNet:
         # pose and goal_dir
         goal_w = (self.goal - self.desire_pos) / np.linalg.norm(self.goal - self.desire_pos)
         goal_c = np.dot(Rotation_cw, goal_w)
-        print(f"self.goal: ({self.goal})")
-        print(f"self.desire_pos: ({self.desire_pos})")
-        print(f"goal_w: ({goal_w[0]:.3f}, {goal_w[1]:.3f}, {goal_w[2]:.3f}), ")
-        print(f"goal_c: ({goal_c[0]:.3f}, {goal_c[1]:.3f}, {goal_c[2]:.3f}), ")
+        print(f"self.goal ori world: ({self.goal}), self.desire_pos world: ({self.desire_pos})")
+        print(f"directed to goal_world: ({goal_w[0]:.3f}, {goal_w[1]:.3f}, {goal_w[2]:.3f}), ")
+        print(f"directed goal_camera: ({goal_c[0]:.3f}, {goal_c[1]:.3f}, {goal_c[2]:.3f}), ")
 
 
         vel_acc = np.concatenate((vel_c, acc_c), axis=0)
         vel_acc_norm = self.normalize_obs(vel_acc[np.newaxis, :])
         obs_norm = np.hstack((vel_acc_norm, goal_c[np.newaxis, :]))
+        print(f"obs_norm (camera ): ({obs_norm})")
+
+        # 将 camera frame 下状态变回 body
+        Rotation_cb = self.Rotation_bc.T
+        vel_b = np.dot(Rotation_cb, vel_c)
+        acc_b = np.dot(Rotation_cb, acc_c)
+        goal_b = np.dot(Rotation_cb, goal_c)
+
+        vel_acc = np.concatenate((vel_b, acc_b), axis=0)
+        vel_acc_norm = self.normalize_obs(vel_acc[np.newaxis, :])
+        obs_norm = np.hstack((vel_acc_norm, goal_b[np.newaxis, :]))
+
+        print(f"obs_norm (body ): ({obs_norm})")
         return obs_norm
 
     def callback_depth(self, data):
@@ -214,8 +226,10 @@ class YopoNet:
         # input prepare
         time1 = time.time()
         depth_input = torch.from_numpy(depth).to(self.device, non_blocking=True)  # (non_blocking: copying speed 3x)
-        obs = self.process_odom()
+        obs = self.process_odom() #结果是camera系的
+        print(f"[Depth] obs shape in camera : {obs.shape}, obs : {obs}")  # 应等于 (9,)
         obs_input = self.prepare_input_observation(obs)
+        print(f"obs_input : {obs_input}")  # 应等于 (9,)
         obs_input = obs_input.to(self.device, non_blocking=True)
         # torch.cuda.synchronize()
 
@@ -296,10 +310,10 @@ class YopoNet:
             self.desire_vel = np.array([control_msg.velocity.x, control_msg.velocity.y, control_msg.velocity.z])
             self.desire_acc = np.array([control_msg.acceleration_or_force.x, control_msg.acceleration_or_force.y, control_msg.acceleration_or_force.z])
             goal_dir = self.goal - self.desire_pos
-            # yaw, yaw_dot = calculate_yaw(self.desire_vel, goal_dir, self.last_yaw, self.ctrl_dt)
-            # self.last_yaw = yaw
-            # control_msg.yaw = yaw
-            # control_msg.yaw_rate = yaw_dot
+            yaw, yaw_dot = calculate_yaw(self.desire_vel, goal_dir, self.last_yaw, self.ctrl_dt)
+            self.last_yaw = yaw
+            control_msg.yaw = yaw
+            control_msg.yaw_rate = yaw_dot
             self.desire_init = True
             self.ctrl_pub.publish(control_msg)
             print(f"set pub: ({control_msg.position.x:.3f}, {control_msg.position.y:.3f}, {control_msg.position.z:.3f})")
@@ -336,13 +350,20 @@ class YopoNet:
 
         obs_return = np.ones((obs.shape[0], obs.shape[1], self.lattice_space.vertical_num, self.lattice_space.horizon_num), dtype=np.float32)
         id = 0
-        obs_reshaped = obs.reshape(3, 3)
+        obs_reshaped = obs.reshape(3, 3).T
+        print(f"\nobs_reshaped in camera---------------------------")
+        print(np.array2string(obs_reshaped, formatter={'float_kind':lambda x: f"{x: .3f}"}))
+        #缺少一步camera到body，然后才能body到primitive，或者输入obs就应该在process_odom先转为body
         for i in range(self.lattice_space.vertical_num - 1, -1, -1):
             for j in range(self.lattice_space.horizon_num - 1, -1, -1):
                 Rpb = self.lattice_primitive.getRotation(id)  # body → primitive
                 print(f"\nfrom body frame to primitive  ({id} ) frame in prepare_input_observation :")
                 print(np.array2string(Rpb, formatter={'float_kind':lambda x: f"{x: .3f}"}))
-                obs_return_reshaped = np.dot(obs_reshaped, Rpb) #有问题，反了，但是修改又需要和物理含义对应上才行
+                # 统一使用左乘：v_primitive = Rpb @ v_body
+                obs_return_reshaped = Rpb @ obs_reshaped  # shape = (3, 3)
+                print(f"\nobs_return_reshaped ---------------------------")
+                print(np.array2string(obs_return_reshaped, formatter={'float_kind':lambda x: f"{x: .3f}"}))
+
                 obs_return[:, :, i, j] = obs_return_reshaped.reshape(9)
                 id = id + 1
         return torch.from_numpy(obs_return)
@@ -362,11 +383,13 @@ class YopoNet:
 
         endstate_vp = endstate_pred[3:6] * self.lattice_space.vel_max
         endstate_ap = endstate_pred[6:9] * self.lattice_space.acc_max
+        endstate_vp = endstate_vp.reshape(3,)  # 如果不确定 shape，强制 reshape 成列向量
+        endstate_ab = endstate_ap.reshape(3,)
         Rbp = self.lattice_primitive.getRotation(id).T 
         print(f"\nfrom primitive : ({id} ) frame to body frame in pred_to_endstate :")
         print(np.array2string(Rbp, formatter={'float_kind':lambda x: f"{x: .3f}"}))
-        endstate_vb = np.matmul(endstate_vp, Rbp)
-        endstate_ab = np.matmul(endstate_ap, Rbp)  #有问题，反了，但是修改又需要和物理含义对应上才行
+        endstate_vb = Rbp @ endstate_vp
+        endstate_ab = Rbp @ endstate_ap
         endstate = np.concatenate((endstate_p, endstate_vb, endstate_ab))
         endstate[[0, 1, 2, 3, 4, 5, 6, 7, 8]] = endstate[[0, 3, 6, 1, 4, 7, 2, 5, 8]]
         return endstate
@@ -467,11 +490,11 @@ def main():
     settings = {'use_tensorrt': args.use_tensorrt,
                 'img_height': 90,
                 'img_width': 160,
-                'goal': [0, 30, 0],           # the goal
+                'goal': [30, 0, 15],           # the goal
                 'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
                 'roll_angle_deg': 0.0,           # roll of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
-                'pitch_angle_deg': -90.0,         # pitch of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
-                'yaw_angle_deg': 90.0,          # yaw of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
+                'pitch_angle_deg': 0.0,         # -90.0,  pitch of camera in body , ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
+                'yaw_angle_deg': 0.0,          # y90.0, aw of camera in body , ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'odom_topic': '/drone0/mavros/local_position/odom',
                 'depth_topic': '/iris0/camera/depth/image_raw',
                 'verbose': True,              # print the latency?
