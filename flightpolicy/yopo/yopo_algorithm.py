@@ -33,10 +33,10 @@ def warmup_cosine_schedule(peak_lr=1.0e-6, final_lr=5.0e-8, warmup_pct=0.1, deca
 
         if progress < warmup_pct:
             return peak_lr * (progress / warmup_pct)
-        elif progress > 1.0 - decay_pct:
-            decay_progress = (progress - (1.0 - decay_pct)) / decay_pct
-            cosine_decay = 0.5 * (1 + math.cos(math.pi * decay_progress))
-            return final_lr + (peak_lr - final_lr) * cosine_decay
+        # elif progress > 1.0 - decay_pct:
+        #     decay_progress = (progress - (1.0 - decay_pct)) / decay_pct
+        #     cosine_decay = 0.5 * (1 + math.cos(math.pi * decay_progress))
+        #     return final_lr + (peak_lr - final_lr) * cosine_decay
         else:
             return peak_lr
     return schedule

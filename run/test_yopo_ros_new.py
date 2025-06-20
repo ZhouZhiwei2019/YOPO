@@ -114,7 +114,7 @@ class YopoNet:
         rospy.spin()
 
     def callback_set_goal(self, data):
-        self.goal = np.asarray([data.pose.position.x, data.pose.position.y, 20.0])
+        self.goal = np.asarray([data.pose.position.x, data.pose.position.y, data.pose.position.z])
         self.arrive = False
 
     # the first frame
@@ -490,7 +490,7 @@ def main():
     settings = {'use_tensorrt': args.use_tensorrt,
                 'img_height': 90,
                 'img_width': 160,
-                'goal': [30, 0, 15],           # the goal
+                'goal': [30, 0, 10],           # the goal
                 'env': '435',           # use Realsense D435 or Flightmare Simulator ('435' or 'flightmare')
                 'roll_angle_deg': 0.0,           # roll of camera, ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)
                 'pitch_angle_deg': 0.0,         # -90.0,  pitch of camera in body , ensure consistent with the simulator or your platform (no need to re-collect and re-train when modifying)

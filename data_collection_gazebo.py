@@ -12,8 +12,8 @@ import cv2
 from scipy.spatial.transform import Rotation
 
 # ---------- 参数 ----------
-TOTAL_GROUPS = 52
-FRAMES_PER_GROUP = 2048
+TOTAL_GROUPS = 72
+FRAMES_PER_GROUP = 3072
 IMG_WIDTH = 640
 IMG_HEIGHT = 480
 DEPTH_TOPIC = "/iris0/camera/depth/image_raw/new"
@@ -26,7 +26,7 @@ VOXEL_DOWNSAMPLE = 0.15
 camera_intrinsics = None
 bridge = CvBridge()
 frame_id = 0
-group_id = 50
+group_id = 44
 pcd = o3d.geometry.PointCloud()
 positions = []
 quaternions = []
